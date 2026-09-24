@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* ── Palette ──────────────────────────────────────────────────────────────
+   Lifted from the desktop app so the two surfaces read as one product:
+   --background 0 0% 7% (#121212) and the #7f77dd accent come straight from
+   cratecloud-v3/src/renderer/src/assets/main.css, the card/border/text greys
+   from AccountProfile.tsx. Dark only, like the app — a DJ app that flashes
+   white at 1am is a bug, not a theme.                                      */
+@theme {
+  --color-page: #121212;
+  --color-surface: #16161f;
+  --color-surface-2: #1a1a26;
+  --color-line: #252535;
+  --color-line-soft: #1e1e2a;
+
+  --color-ink: #e8e8f0;
+  --color-ink-2: #c0c0d8;
+  --color-muted: #6b6b7a;
+  --color-faint: #4a4a58;
+
+  --color-accent: #7f77dd;
+  --color-ok: #1d9e75;
+  --color-warn: #ba7517;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 3px; }
+
+/* Focus ring that survives the dark palette. Never removed — keyboard
+   navigation on a pricing page is not optional. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
