@@ -47,9 +47,13 @@ export async function POST(request: Request) {
   // Already subscribed. A second Checkout Session would create a SECOND
   // subscription and bill them twice — plan changes belong in the Portal,
   // which handles the proration Stripe would otherwise skip.
-  if (entitlement?.stripe_subscription_id && isEntitled(entitlement)) {
+  if (
+    entitlement?.stripe_subscription_id &&
+    entitlement.stripe_customer_id &&
+    isEntitled(entitlement)
+  ) {
     const portal = await stripe.billingPortal.sessions.create({
-      customer: entitlement.stripe_customer_id!,
+      customer: entitlement.stripe_customer_id,
       return_url: `${siteUrl()}/dashboard`
     })
     return NextResponse.json({ url: portal.url, reason: 'already_subscribed' })
