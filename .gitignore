@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# The committed template. `.env*` above would otherwise ignore it, and a
+# repo with no example env is a repo nobody else can run.
+!.env.local.example

@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cratecloud-web
 
-## Getting Started
+The payments and account website for CrateCloud. Next.js 16 (App Router) on
+Vercel, sharing one Supabase project with the `cratecloud-v3` desktop app.
 
-First, run the development server:
+**The desktop app is free and gates nothing.** This site sells the one paid
+thing that exists: the cloud sync / mobile subscription. It is also the only
+place a Stripe secret or a Supabase service-role key is allowed to live.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## How the two halves fit
+
+```
+Desktop (Electron)                    Website (this repo)
+──────────────────                    ───────────────────
+Supabase anon key                     Supabase anon key   (user reads)
+reads entitlements  ◄── RLS ──────►   Supabase SERVICE ROLE (webhook writes)
+own-row SELECT only                   Stripe secret key
+                                             │
+     cratecloud://checkout-complete  ◄───────┘ after checkout
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Neither half calls the other. They meet at one Postgres row:
+`public.entitlements`, one per account, created at signup by a database
+trigger. Its migrations live in the **desktop** repo at
+`cratecloud-v3/supabase/migrations/` — that is still the source of truth for
+the schema. This repo only reads and writes it.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The Stripe webhook is the sole writer of `plan` and `status`. There is
+deliberately no INSERT or UPDATE policy for authenticated users: a client
+that could set its own `plan` is not an entitlement, it's a suggestion.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+```bash
+cp .env.local.example .env.local   # then fill it in — see the comments
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the same
+pair the desktop app uses (`MAIN_VITE_`-prefixed in `cratecloud-v3/.env`).
+Everything else is new and server-only.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Supabase dashboard
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Authentication → URL Configuration → **Redirect URLs** must include this
+site's callback alongside the desktop's:
 
-## Deploy on Vercel
+```
+http://localhost:3000/auth/callback
+https://<your-vercel-url>/auth/callback
+https://cratecloud.com/auth/callback     # once the domain exists
+cratecloud://auth-callback               # already there, for the desktop
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The Google Cloud Console redirect URI does **not** change — it points at
+Supabase's `/auth/v1/callback`, not at either of ours.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Stripe
+
+Two products, each with one recurring price. Put the **price** ids
+(`price_…`, not `prod_…`) in `STRIPE_PRICE_ID_CLOUD_MOBILE` and
+`STRIPE_PRICE_ID_CLOUD_MOBILE_PLUS`.
+
+Configure the Customer Portal at Settings → Billing → Customer portal, and
+list both products under "Products" — otherwise upgrades are not offered and
+the portal looks broken for reasons no code change will fix.
+
+### The webhook, locally
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+It prints its **own** signing secret. There are three different values in
+play — local, test-mode dashboard, live-mode dashboard — and mixing them up
+is the most common way this breaks.
+
+Exercise every path:
+
+```bash
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.updated
+stripe trigger customer.subscription.deleted
+stripe trigger invoice.payment_failed
+```
+
+Then do it for real with test card `4242 4242 4242 4242`, and a failing one
+with `4000 0000 0000 0341`.
+
+## The four events
+
+| Event | Writes |
+|---|---|
+| `checkout.session.completed` | `stripe_customer_id`, `stripe_subscription_id`, `stripe_price_id`, `plan`, `status`, `current_period_end`, `cancel_at_period_end` |
+| `customer.subscription.updated` | same, minus the customer link — **sole writer of `status`** |
+| `customer.subscription.deleted` | `plan='free'`, `status='canceled'`, clears subscription/price/period; **keeps** `stripe_customer_id` |
+| `invoice.payment_failed` | **nothing** — notification only |
+
+`customer.subscription.created` is deliberately unhandled: it would race
+`checkout.session.completed` for the same row.
+
+Response codes are load-bearing, because Stripe retries non-2xx for three
+days: **400** bad signature (never retry), **500** transient DB failure (do
+retry), **200** handled, ignored, or unresolvable.
+
+## Two Stripe API gotchas, already handled
+
+Both were verified against `stripe@22.6.2` / API `2026-08-26.dahlia`:
+
+1. `current_period_end` has been **removed from `Subscription`** and lives on
+   the subscription *item*. See `periodEndISO()` in `lib/stripe.ts`. Reading
+   the old field gives `undefined` and a silently null renew date.
+2. `subscription` has been **removed from `Invoice`** — it is now at
+   `invoice.parent.subscription_details.subscription`.
+
+If you bump `STRIPE_API_VERSION`, re-check both.
+
+## The entitlement rule
+
+One place, `isEntitled()` in `lib/plans.ts`:
+
+```
+entitled = status in ('active','trialing')
+           or (status = 'past_due' and current_period_end > now())
+```
+
+It cannot live in the database — it depends on `current_period_end` as well
+as `status`, which no check constraint can express. The `past_due` grace is
+what stops a retryable card from cutting a DJ off mid-set.
+
+## Security
+
+- `SUPABASE_SERVICE_ROLE_KEY` and `STRIPE_SECRET_KEY` are **server-only** and
+  must never appear in `cratecloud-v3`. `lib/supabase/admin.ts` carries
+  `server-only` so an accidental client import is a build failure.
+- On Vercel, scope **live** keys to Production only. Preview deployments get
+  their environment too; use Stripe test keys there and turn on deployment
+  protection.
+- User-facing reads (`/dashboard`, `/account`) go through the **anon** client
+  with the user's session so RLS scopes them. The service role is for the
+  webhook and the checkout route's customer lookup, and nothing else.
+- The browser sends a tier **key**, never a price id. If it could name a
+  price it could name a cheaper one.
+
+## Deploying
+
+Vercel, root directory = repo root. Nothing here needs anything Vercel does
+not do natively.
+
+Once `cratecloud.com` is registered, update in this order:
+`NEXT_PUBLIC_SITE_URL` → Supabase Redirect URLs → the Stripe webhook endpoint
+URL (**which issues a new signing secret** — update `STRIPE_WEBHOOK_SECRET`
+in the same deploy or every event 400s).
+
+Until then, the `*.vercel.app` URL works for all of it.
