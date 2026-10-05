@@ -14,12 +14,15 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except static assets, images and the Stripe webhook.
+     * Everything except static assets, images, the Stripe webhook and the desktop redeem call.
      *
      * The webhook exclusion matters: it arrives with no cookies and must not
      * be delayed by a token refresh that can only fail. Stripe retries on a
      * timeout, and a retried billing event is the last thing you want.
+     *
+     * api/desktop/redeem is called by the desktop app, which sends no cookies,
+     * so a session refresh there is wasted latency.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'
+    '/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|api/desktop/redeem|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'
   ]
 }

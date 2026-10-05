@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Sign in' }
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>
+  searchParams: Promise<{ next?: string; error?: string; mode?: string }>
 }) {
   const params = await searchParams
 
@@ -28,7 +28,11 @@ export default async function LoginPage({
         subscription bought here to the library on your machine.
       </p>
       <Card>
-        <LoginForm next={next} initialError={params.error} />
+        <LoginForm
+          next={next}
+          initialError={params.error}
+          initialMode={params.mode === 'signup' ? 'sign-up' : 'sign-in'}
+        />
       </Card>
     </div>
   )

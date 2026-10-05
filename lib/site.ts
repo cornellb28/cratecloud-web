@@ -19,3 +19,7 @@ export function siteUrl(): string {
 // app.setAsDefaultProtocolClient('cratecloud') and declared in
 // electron-builder.yml, so a packaged build on any OS answers it.
 export const DESKTOP_CHECKOUT_CALLBACK = 'cratecloud://checkout-complete'
+
+// Where the /desktop/connect page sends the one-time key. The app accepts
+// only this exact scheme + authority (see deepcrate-desktop-deeplink).
+export const DESKTOP_AUTH_CALLBACK = 'cratecloud://auth-callback'

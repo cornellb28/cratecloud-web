@@ -17,11 +17,19 @@ import { Button, Notice } from '@/components/ui'
 
 type Mode = 'sign-in' | 'sign-up'
 
-export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
+export function LoginForm({
+  next,
+  initialError,
+  initialMode = 'sign-in'
+}: {
+  next: string
+  initialError?: string
+  initialMode?: Mode
+}) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [mode, setMode] = useState<Mode>('sign-in')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
