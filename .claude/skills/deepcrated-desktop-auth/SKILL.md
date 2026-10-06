@@ -1,5 +1,5 @@
 ---
-name: deepcrate-desktop-auth
+name: deepcrated-desktop-auth
 description: Sign-in, sign-out, session storage, and Supabase auth in the DeepCrate desktop app (cratecloud-v3, Electron). Use whenever work touches login, signup, Google OAuth, Supabase client setup, session or token storage, safeStorage, or what the renderer may know about the user, even if the user just says "login" or "accounts". Read deepcrate-account-contract first.
 ---
 

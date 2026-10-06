@@ -1,5 +1,5 @@
 ---
-name: "deepcrate-account-contract"
+name: "deepcrated-account-contract"
 description: Shared account and entitlement contract between the DeepCrate desktop app (cratecloud-v3) and website (deepcrate-web). Use whenever work touches plans, subscriptions, entitlements, Supabase accounts, Stripe-to-account mapping, or any change that must stay consistent across both repos, even if the user just says "accounts", "plan", or "billing". Identical copy lives in both repos.
 ---
  

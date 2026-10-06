@@ -1,5 +1,5 @@
 ---
-name: deepcrate-web-desktop-handoff
+name: deepcrated-web-desktop-handoff
 description: The website side of signing a user into the DeepCrate desktop app, in deepcrate-web. Covers the desktop connect page, the create-key and redeem endpoints, the handoff table, and creating a session server-side. Use whenever work touches desktop sign-in, the connect page, one-time keys, redeem, verifier or challenge checks, generateLink or verifyOtp, or why the app does not sign in after the browser login, even if the user just says "the handoff" or "sign in from the app". Read deepcrate-account-contract first.
 ---
 

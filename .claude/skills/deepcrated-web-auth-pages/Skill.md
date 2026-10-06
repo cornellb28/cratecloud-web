@@ -1,5 +1,5 @@
 ---
-name: deepcrate-web-auth-pages
+name: deepcrated-web-auth-pages
 description: Login and signup pages, Supabase redirect allowlists, and the handoff back to the desktop app on the DeepCrate website (deepcrate-web). Use whenever work touches the website's sign-in or sign-up UI, Google OAuth on the web, Supabase redirect URLs, or why login "does nothing", even if the user just says "login page". Read deepcrate-account-contract first.
 ---
 

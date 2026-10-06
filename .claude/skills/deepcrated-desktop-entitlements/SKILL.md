@@ -1,5 +1,5 @@
 ---
-name: deepcrate-desktop-entitlements
+name: deepcrated-desktop-entitlements
 description: Reading plan and subscription state in the DeepCrate desktop app (cratecloud-v3), caching it offline, and the locked/upgrade UI for cloud sync and mobile. Use whenever work touches entitlements, plan or subscription status, the Settings Plan page, LockedView, LockBadge, upgrade prompts, or offline behavior tied to accounts, even if the user just says "the plan screen" or "locked features". Read deepcrate-account-contract first.
 ---
 

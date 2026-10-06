@@ -47,6 +47,17 @@ export class HandoffError extends Error {
 }
 
 export const sha256b64url = (s: string) => createHash('sha256').update(s).digest('base64url')
+// key_hash is stored as hex; the challenge is base64url (it is the desktop app's format).
+export const sha256hex = (s: string) => createHash('sha256').update(s).digest('hex')
+
+// ── Rate limits: PROVISIONAL, awaiting owner approval ─────────────────────
+// TODO(rate-limit): confirm or change these numbers, then delete this note.
+export const RATE_LIMITS = {
+  handoffPerIp: { limit: 20, windowMs: 60_000 },
+  handoffPerUser: { limit: 10, windowMs: 60_000 },
+  handoffActivePerUser: { limit: MAX_RECENT_PER_USER, windowMs: RECENT_WINDOW_MS }, // table-backed
+  redeemPerIp: { limit: 20, windowMs: 60_000 }
+} as const
 
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a)
@@ -75,7 +86,7 @@ export async function createHandoff(
 
   const key = randomBytes(32).toString('base64url')
   await deps.store.insert({
-    key_hash: sha256b64url(key),
+    key_hash: sha256hex(key),
     challenge,
     user_id: user.id,
     expires_at: new Date(now + HANDOFF_TTL_MS).toISOString()
@@ -96,10 +107,34 @@ export async function redeemHandoff(
 
   // Single-use is enforced here, atomically. The key is spent BEFORE the
   // verifier is checked, so a stolen key gets exactly one guess.
-  const row = await deps.store.consume(sha256b64url(key), new Date(now).toISOString())
+  const row = await deps.store.consume(sha256hex(key), new Date(now).toISOString())
   if (!row) return null
 
   if (!safeEqual(sha256b64url(verifier), row.challenge)) return null
 
   return deps.issuer.issue(row.user_id)
+}
+
+// ── Redeem as an HTTP handler ─────────────────────────────────────────────
+// Lives here (not only in the route file) so a test can prove every failure
+// is byte-identical. The status, headers and body are one constant: bad JSON,
+// unknown key, used, expired, wrong verifier, rate-limited and a thrown error
+// all return exactly this.
+export const REDEEM_FAILURE_BODY = '{"error":"invalid_request"}'
+const NO_STORE = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' }
+const redeemFailure = () => new Response(REDEEM_FAILURE_BODY, { status: 400, headers: NO_STORE })
+
+export async function handleRedeem(
+  request: Request,
+  deps: { store: HandoffStore; issuer: SessionIssuer; allow: (request: Request) => boolean; now?: () => number }
+): Promise<Response> {
+  try {
+    if (!deps.allow(request)) return redeemFailure()
+    const body = (await request.json()) as { key?: unknown; verifier?: unknown }
+    const session = await redeemHandoff({ key: body?.key, verifier: body?.verifier }, deps)
+    if (!session?.access_token || !session.refresh_token) return redeemFailure()
+    return new Response(JSON.stringify(session), { status: 200, headers: NO_STORE })
+  } catch {
+    return redeemFailure()
+  }
 }

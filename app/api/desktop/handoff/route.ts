@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
 import { clientIp, hit } from '@/lib/rate-limit'
-import { createHandoff, HandoffError } from '@/lib/desktop-handoff'
+import { createHandoff, HandoffError, RATE_LIMITS } from '@/lib/desktop-handoff'
 import { supabaseStore } from '@/lib/desktop-handoff-supabase'
 
 export const runtime = 'nodejs'
@@ -21,10 +21,10 @@ export async function POST(request: Request) {
   if (request.headers.get('origin') !== new URL(request.url).origin) return fail(403)
 
   // Backstop only; see TODO(rate-limit) in lib/rate-limit.ts.
-  if (!hit(`handoff:ip:${clientIp(request)}`, 20, 60_000)) return fail(429)
+  if (!hit(`handoff:ip:${clientIp(request)}`, RATE_LIMITS.handoffPerIp.limit, RATE_LIMITS.handoffPerIp.windowMs)) return fail(429)
 
   const user = await getUser()
-  if (user && !hit(`handoff:user:${user.id}`, 10, 60_000)) return fail(429)
+  if (user && !hit(`handoff:user:${user.id}`, RATE_LIMITS.handoffPerUser.limit, RATE_LIMITS.handoffPerUser.windowMs)) return fail(429)
 
   let body: { challenge?: unknown } = {}
   try {

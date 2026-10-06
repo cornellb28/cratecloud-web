@@ -1,40 +1,27 @@
 // ── POST /api/desktop/redeem ──────────────────────────────────────────────
 // Called by the desktop app (not a browser): { key, verifier } -> { access_token,
-// refresh_token }. No cookies; proxy.ts skips this route.
+// refresh_token }. No cookies; proxy.ts skips this route. The app refuses
+// redirects, so this must answer at exactly /api/desktop/redeem (no trailing
+// slash).
 //
-// EVERY failure is the same 400. Never say whether a key was unknown, used,
-// expired, or paired with the wrong verifier, and never log any of them.
+// EVERY failure is the same 400 with the same body (see handleRedeem). Never
+// say whether a key was unknown, used, expired, wrong-verifier or throttled,
+// and never log any of them.
 
-import { NextResponse } from 'next/server'
 import { clientIp, hit } from '@/lib/rate-limit'
-import { redeemHandoff } from '@/lib/desktop-handoff'
+import { handleRedeem, RATE_LIMITS } from '@/lib/desktop-handoff'
 import { supabaseIssuer, supabaseStore } from '@/lib/desktop-handoff-supabase'
 
 export const runtime = 'nodejs'
 
-const headers = { 'Cache-Control': 'no-store' }
-const fail = (status = 400) => NextResponse.json({ error: 'invalid_request' }, { status, headers })
-
 export async function POST(request: Request) {
-  // Backstop only; see TODO(rate-limit) in lib/rate-limit.ts.
-  // TODO(rate-limit): per-user limit needs the user, which is unknown until a
-  // key resolves. Keys are 256-bit, so the IP limit and the WAF rule suffice.
-  if (!hit(`redeem:ip:${clientIp(request)}`, 20, 60_000)) return fail(429)
-
-  let body: { key?: unknown; verifier?: unknown } = {}
-  try {
-    body = await request.json()
-  } catch {
-    return fail()
-  }
-
-  try {
-    const session = await redeemHandoff(
-      { key: body.key, verifier: body.verifier },
-      { store: supabaseStore(), issuer: supabaseIssuer() }
-    )
-    return session ? NextResponse.json(session, { headers }) : fail()
-  } catch {
-    return fail()
-  }
+  const { limit, windowMs } = RATE_LIMITS.redeemPerIp
+  return handleRedeem(request, {
+    store: supabaseStore(),
+    issuer: supabaseIssuer(),
+    // Backstop only; see TODO(rate-limit) in lib/rate-limit.ts.
+    // TODO(rate-limit): no per-key_hash limit. Keys are 256-bit and single-use,
+    // so there is nothing to guess; revisit if the WAF rule proves insufficient.
+    allow: (req) => hit(`redeem:ip:${clientIp(req)}`, limit, windowMs)
+  })
 }

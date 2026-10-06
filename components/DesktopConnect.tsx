@@ -7,14 +7,11 @@
 // `state` never goes to the server; it is only echoed into the deep link so
 // the app can match the callback to the sign-in it started.
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Notice } from '@/components/ui'
 import { DESKTOP_AUTH_CALLBACK } from '@/lib/site'
-
-// Keys live 60s server-side; re-mint a little early rather than hand the app a dead one.
-const REUSE_MS = 45_000
 
 export function DesktopConnect({
   email,
@@ -33,27 +30,23 @@ export function DesktopConnect({
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(false)
-  const minted = useRef<{ key: string; at: number } | null>(null)
 
   async function open() {
     setBusy(true)
     setError(false)
     try {
-      let m = minted.current
-      if (!m || Date.now() - m.at > REUSE_MS) {
-        const res = await fetch('/api/desktop/handoff', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ challenge })
-        })
-        if (!res.ok) throw new Error('handoff')
-        m = { key: (await res.json()).key, at: Date.now() }
-        minted.current = m
-      }
+      // Every click, including "Didn't open? Try again", mints a fresh key.
+      const res = await fetch('/api/desktop/handoff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge })
+      })
+      if (!res.ok) throw new Error('handoff')
+      const { key } = (await res.json()) as { key: string }
       setSent(true)
       // Custom-scheme hand-off to the desktop app, not an internal route.
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.href = `${DESKTOP_AUTH_CALLBACK}?key=${encodeURIComponent(m.key)}&state=${encodeURIComponent(state)}`
+      window.location.href = `${DESKTOP_AUTH_CALLBACK}?key=${encodeURIComponent(key)}&state=${encodeURIComponent(state)}`
     } catch {
       setError(true)
     }

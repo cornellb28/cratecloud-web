@@ -6,6 +6,9 @@ import {
   createHandoff,
   redeemHandoff,
   sha256b64url,
+  sha256hex,
+  handleRedeem,
+  REDEEM_FAILURE_BODY,
   HandoffError,
   HANDOFF_TTL_MS,
   type HandoffStore,
@@ -122,6 +125,51 @@ test('two simultaneous redeems give exactly one success', async () => {
     redeemHandoff({ key, verifier: v }, { store, issuer })
   ])
   assert.equal(results.filter(Boolean).length, 1)
+})
+
+test('key_hash is stored as SHA-256 hex of the key', async () => {
+  const { store, rows } = fakeStore()
+  const { key } = await mint(store)
+  assert.ok(rows.has(sha256hex(key)))
+  assert.match(sha256hex(key), /^[0-9a-f]{64}$/)
+})
+
+test('every redeem failure is byte-identical, success is not', async () => {
+  const req = (body: string) => new Request('https://x.test/api/desktop/redeem', { method: 'POST', body })
+  const allow = () => true
+  const snap = async (r: Response) => JSON.stringify([r.status, [...r.headers].sort(), await r.text()])
+
+  const { store } = fakeStore()
+  const t0 = Date.now()
+  const used = await mint(store)
+  await redeemHandoff({ key: used.key, verifier: used.v }, { store, issuer })
+  const expired = await mint(store, verifier(), () => t0 - HANDOFF_TTL_MS - 5)
+  const wrong = await mint(store)
+  const thrower: SessionIssuer = { async issue() { throw new Error('boom') } }
+  const nullIssuer: SessionIssuer = { async issue() { return null } }
+  const ok = await mint(store)
+
+  const failures = await Promise.all([
+    handleRedeem(req('not json'), { store, issuer, allow }),
+    handleRedeem(req('{}'), { store, issuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: randomBytes(32).toString('base64url'), verifier: verifier() })), { store, issuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: used.key, verifier: used.v })), { store, issuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: expired.key, verifier: expired.v })), { store, issuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: wrong.key, verifier: verifier() })), { store, issuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: ok.key, verifier: ok.v })), { store, issuer: nullIssuer, allow }),
+    handleRedeem(req(JSON.stringify({ key: ok.key, verifier: ok.v })), { store, issuer: thrower, allow }),
+    handleRedeem(req(JSON.stringify({ key: ok.key, verifier: ok.v })), { store, issuer, allow: () => false })
+  ])
+  const snaps = await Promise.all(failures.map(snap))
+  assert.equal(new Set(snaps).size, 1)
+  assert.equal(failures[0].status, 400)
+  assert.equal(JSON.parse(snaps[0])[2], REDEEM_FAILURE_BODY)
+
+  const fresh = await mint(store)
+  const good = await handleRedeem(req(JSON.stringify({ key: fresh.key, verifier: fresh.v })), { store, issuer, allow })
+  assert.equal(good.status, 200)
+  const j = await good.json()
+  assert.ok(j.access_token && j.refresh_token)
 })
 
 // "generateLink twice in a row for the same user still lets both sign-ins
