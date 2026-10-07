@@ -17,7 +17,7 @@ import { customerIdOf, firstPriceId, mapStatus, periodEndISO, planForPriceId } f
 const COLUMNS =
   'user_id, plan, status, stripe_customer_id, stripe_subscription_id, stripe_price_id, current_period_end, cancel_at_period_end'
 
-// Works with either client. Called with the USER's client from /dashboard
+// Works with either client. Called with the USER's client from /account/billing
 // (RLS scopes it to their own row) and with the admin client from the
 // webhook and /api/checkout.
 export async function readEntitlement(

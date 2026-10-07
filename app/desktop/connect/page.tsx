@@ -9,9 +9,10 @@ import { redirect } from 'next/navigation'
 import { DesktopConnect } from '@/components/DesktopConnect'
 import { Card, Notice } from '@/components/ui'
 import { getUser } from '@/lib/auth'
+import { BRAND } from '@/lib/site'
 import { CHALLENGE_RE } from '@/lib/desktop-handoff'
 
-export const metadata: Metadata = { title: 'Connect DeepCrate', robots: { index: false } }
+export const metadata: Metadata = { title: `Connect ${BRAND}`, robots: { index: false } }
 
 const STATE_RE = /^[A-Za-z0-9_-]{16,128}$/
 
@@ -26,7 +27,7 @@ export default async function DesktopConnectPage({
     return (
       <div className="mx-auto max-w-sm px-6 py-20">
         <Card>
-          <Notice>This sign-in link isn’t valid. Go back to the DeepCrate app and try again.</Notice>
+          <Notice>This sign-in link isn’t valid. Go back to the {BRAND} app and try again.</Notice>
         </Card>
       </div>
     )

@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Notice } from '@/components/ui'
-import { DESKTOP_AUTH_CALLBACK } from '@/lib/site'
+import { BRAND, DESKTOP_AUTH_CALLBACK } from '@/lib/site'
 
 export function DesktopConnect({
   email,
@@ -65,7 +65,7 @@ export function DesktopConnect({
       <div className="flex flex-col gap-4">
         <Notice kind="info">
           Confirm <span className="text-ink">{email}</span> from the email we sent, then reopen
-          sign-in from the DeepCrate app.
+          sign-in from the {BRAND} app.
         </Notice>
         <Button variant="ghost" onClick={switchAccount} disabled={busy}>
           Use a different account
@@ -77,17 +77,17 @@ export function DesktopConnect({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-medium text-ink">
-        Open DeepCrate as <span className="break-all">{email}</span>?
+        Open {BRAND} as <span className="break-all">{email}</span>?
       </h1>
       {error && <Notice>Something went wrong. Try again.</Notice>}
-      {sent && <Notice kind="info">Opening DeepCrate… you can close this tab once the app signs in.</Notice>}
+      {sent && <Notice kind="info">Opening {BRAND}… you can close this tab once the app signs in.</Notice>}
       {sent ? (
         <Button variant="outline" onClick={open} disabled={busy}>
           Didn’t open? Try again
         </Button>
       ) : (
         <Button onClick={open} disabled={busy}>
-          {busy ? 'Working…' : 'Open DeepCrate'}
+          {busy ? 'Working…' : `Open ${BRAND}`}
         </Button>
       )}
       <Button variant="ghost" onClick={switchAccount} disabled={busy}>

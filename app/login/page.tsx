@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/LoginForm'
 import { Card } from '@/components/ui'
 import { getUser } from '@/lib/auth'
+import { safeNext } from '@/lib/safe-next'
+import { BRAND } from '@/lib/site'
 
 export const metadata: Metadata = { title: 'Sign in' }
 
@@ -13,10 +15,8 @@ export default async function LoginPage({
 }) {
   const params = await searchParams
 
-  // Only ever a relative path. Reflecting an absolute URL back into a
-  // post-login redirect is an open redirect.
-  const raw = params.next ?? '/dashboard'
-  const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard'
+  // Same-site relative path only (see safeNext) — anything else is an open redirect.
+  const next = safeNext(params.next)
 
   if (await getUser()) redirect(next)
 
@@ -24,7 +24,7 @@ export default async function LoginPage({
     <div className="mx-auto max-w-sm px-6 py-20">
       <h1 className="mb-2 text-2xl font-medium text-ink">Sign in</h1>
       <p className="mb-7 text-[12px] leading-relaxed text-muted">
-        Use the same account you use in the CrateCloud desktop app — that is what ties a
+        Use the same account you use in the {BRAND} desktop app — that is what ties a
         subscription bought here to the library on your machine.
       </p>
       <Card>

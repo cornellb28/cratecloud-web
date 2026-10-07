@@ -1,6 +1,6 @@
 // ── Supabase: server client (RSC, route handlers, server actions) ─────────
 // Anon key plus the caller's session cookie, so RLS scopes every read to the
-// signed-in user. THIS is what /dashboard and /account read the entitlement
+// signed-in user. THIS is what /account/billing and the account chip read the entitlement
 // with — deliberately not the service role. Using the admin client for a
 // user-facing read would turn a missing WHERE clause into a data leak.
 

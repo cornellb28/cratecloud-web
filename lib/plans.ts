@@ -135,6 +135,16 @@ export function planName(plan: Plan | string): string {
   return tierByKey(plan)?.name ?? String(plan).replace(/_/g, ' ')
 }
 
+// What the account chip and billing page show for the plan. Derived from the
+// row's own `plan` string rather than PAID_TIERS, so renaming or adding a tier
+// never needs a change here. No row, plan 'free' or status 'none' all read as
+// Free.
+export function planLabel(e: { plan: string; status: string } | null | undefined): string {
+  if (!e || e.status === 'none' || e.plan === 'free') return 'Free'
+  const words = String(e.plan).replace(/[_-]+/g, ' ').trim()
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : 'Free'
+}
+
 // ─── Status, in a DJ's words ──────────────────────────────────────────────
 // Same wording as the desktop's plan.ts subscriptionNote(), so the two
 // surfaces never disagree about what a row means.

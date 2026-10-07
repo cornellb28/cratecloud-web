@@ -1,6 +1,6 @@
-# cratecloud-web
+# deepcrated-web
 
-The payments and account website for CrateCloud. Next.js 16 (App Router) on
+The payments and account website for DeepCrated. Next.js 16 (App Router) on
 Vercel, sharing one Supabase project with the `cratecloud-v3` desktop app.
 
 **The desktop app is free and gates nothing.** This site sells the one paid
@@ -16,7 +16,7 @@ Supabase anon key                     Supabase anon key   (user reads)
 reads entitlements  ◄── RLS ──────►   Supabase SERVICE ROLE (webhook writes)
 own-row SELECT only                   Stripe secret key
                                              │
-     cratecloud://checkout-complete  ◄───────┘ after checkout
+     deepcrated://checkout-complete  ◄───────┘ after checkout
 ```
 
 Neither half calls the other. They meet at one Postgres row:
@@ -49,8 +49,8 @@ site's callback alongside the desktop's:
 ```
 http://localhost:3000/auth/callback
 https://<your-vercel-url>/auth/callback
-https://cratecloud.com/auth/callback     # once the domain exists
-cratecloud://auth-callback               # already there, for the desktop
+https://deepcrated.com/auth/callback     # once the domain exists
+deepcrated://auth-callback               # already there, for the desktop
 ```
 
 The Google Cloud Console redirect URI does **not** change — it points at
@@ -148,7 +148,7 @@ what stops a retryable card from cutting a DJ off mid-set.
 Vercel, root directory = repo root. Nothing here needs anything Vercel does
 not do natively.
 
-Once `cratecloud.com` is registered, update in this order:
+Once `deepcrated.com` is registered, update in this order:
 `NEXT_PUBLIC_SITE_URL` → Supabase Redirect URLs → the Stripe webhook endpoint
 URL (**which issues a new signing secret** — update `STRIPE_WEBHOOK_SECRET`
 in the same deploy or every event 400s).

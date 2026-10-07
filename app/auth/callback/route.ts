@@ -3,12 +3,13 @@
 // link. Exchanges the PKCE code for a session and sets the cookies.
 //
 // This URL must be listed in Supabase > Authentication > URL Configuration >
-// Redirect URLs, alongside the desktop app's cratecloud://auth-callback.
+// Redirect URLs, alongside the desktop app's deepcrated://auth-callback.
 // The two are not interchangeable: Google returns to Supabase, Supabase
 // returns here (web) or to the custom scheme (desktop).
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { safeNext } from '@/lib/safe-next'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -21,10 +22,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error)}`)
   }
 
-  // Only ever a relative path. An open redirect on an auth callback is how
-  // you hand someone's session to another origin.
-  const raw = searchParams.get('next') ?? '/dashboard'
-  const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard'
+  // Same-site relative path only (see safeNext). An open redirect on an auth
+  // callback is how you hand someone's session to another origin.
+  const next = safeNext(searchParams.get('next'))
 
   if (code) {
     const supabase = await createClient()

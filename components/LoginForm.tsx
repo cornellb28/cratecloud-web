@@ -68,7 +68,7 @@ export function LoginForm({
     }
 
     // refresh() so the Server Components re-run with the new cookie before
-    // the navigation lands, otherwise /dashboard renders as signed-out once.
+    // the navigation lands, otherwise the next page renders as signed-out once.
     router.push(next)
     router.refresh()
   }

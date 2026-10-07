@@ -29,7 +29,7 @@ export function getStripe(): Stripe {
       apiVersion: STRIPE_API_VERSION,
       // Shows up in the Stripe dashboard's logs, which is worth its weight
       // the first time you are staring at an event that did not land.
-      appInfo: { name: 'cratecloud-web' }
+      appInfo: { name: 'deepcrated-web' }
     })
   }
   return cached

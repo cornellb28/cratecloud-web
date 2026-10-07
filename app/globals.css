@@ -22,6 +22,17 @@
   --color-ok: #1d9e75;
   --color-warn: #ba7517;
 
+  /* Marketing + account shared tokens. Utilities: text-display, bg-surface-3,
+     shadow-lift. Anything the account area needs should come from here. */
+  --color-surface-3: #20202e;
+  --shadow-lift: 0 18px 48px -18px rgb(0 0 0 / 0.7), 0 0 0 1px var(--color-line);
+  --text-display: clamp(2.75rem, 8vw, 5.5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.035em;
+  --text-headline: clamp(2rem, 4.5vw, 3.25rem);
+  --text-headline--line-height: 1.08;
+  --text-headline--letter-spacing: -0.025em;
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
