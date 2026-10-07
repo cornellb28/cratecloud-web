@@ -22,11 +22,19 @@ const PRICE_TO_TIER: Record<string, string> = Object.fromEntries(
     .map(([tier, price]) => [price!, tier])
 );
 
+// Shapes that differ between Stripe API versions. The SDK types only model
+// the current one, so the version-dependent fields are read through these.
+type SubscriptionRef = string | { id: string } | null | undefined;
+type InvoiceSubscriptionFields = {
+  parent?: { subscription_details?: { subscription?: SubscriptionRef } | null } | null;
+  subscription?: SubscriptionRef;
+};
+type PeriodEndField = { current_period_end?: number | null };
+
 // Newer Stripe API versions moved invoice.subscription under invoice.parent
 export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
-  const id =
-    (invoice as any).parent?.subscription_details?.subscription ??
-    (invoice as any).subscription;
+  const legacy = invoice as unknown as InvoiceSubscriptionFields;
+  const id = legacy.parent?.subscription_details?.subscription ?? legacy.subscription;
   if (!id) return null;
   return typeof id === "string" ? id : id.id;
 }
@@ -55,7 +63,9 @@ export async function syncSubscription(subscriptionId: string, userIdHint?: stri
   const priceId = item?.price.id ?? null;
   // Newer API versions put the period end on the item, older ones on the subscription
   const periodEnd: number | null =
-    (item as any)?.current_period_end ?? (sub as any).current_period_end ?? null;
+    (item as unknown as PeriodEndField | undefined)?.current_period_end ??
+    (sub as unknown as PeriodEndField).current_period_end ??
+    null;
 
   const { error } = await supabaseAdmin.from("subscriptions").upsert(
     {
