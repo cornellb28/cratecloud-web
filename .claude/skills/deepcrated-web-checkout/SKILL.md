@@ -5,7 +5,7 @@ description: Stripe Checkout Sessions, customer portal, and success/cancel redir
 
 # Web checkout (deepcrate-web)
 
-Read `deepcrate-account-contract` first. Inspect the existing framework, routes, and Stripe code before changing anything; don't assume a layout. v2's license-key flow is reference only.
+Read `deepcrated-account-contract` first. Inspect the existing framework, routes, and Stripe code before changing anything; don't assume a layout. v2's license-key flow is reference only.
 
 - Require a signed-in user before creating a Checkout Session.
 - Set `client_reference_id` to the Supabase `user_id`. Reuse an existing `stripe_customer_id` to avoid duplicate customers.

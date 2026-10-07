@@ -5,7 +5,7 @@ description: The website side of signing a user into the DeepCrate desktop app, 
 
 # Desktop sign-in handoff (deepcrate-web)
 
-Read `deepcrate-account-contract` (v3) first; its "Round trip" section is the design. Inspect the existing framework, routes, and migrations before changing anything. These two endpoints plus the Stripe webhook are the only server routes; don't add more.
+Read `deepcrated-account-contract` (v3) first; its "Round trip" section is the design. Inspect the existing framework, routes, and migrations before changing anything. These two endpoints plus the Stripe webhook are the only server routes; don't add more.
 
 ## Pieces
 - **Connect page** `/desktop/connect?challenge=...&state=...` (optional `mode=signup`): if not signed in, send through login or signup and return with the query intact. If signed in, show "Open DeepCrate as <email>?" with a confirm button and a "Use a different account" link. On confirm, call the create endpoint, then navigate to `<scheme>://auth-callback?key=...&state=...`. Include a "Didn't open? Try again" button.

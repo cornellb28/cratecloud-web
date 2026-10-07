@@ -1,17 +1,13 @@
 ---
 name: "deepcrated-account-contract"
-description: Shared account and entitlement contract between the DeepCrate desktop app (cratecloud-v3) and website (deepcrate-web). Use whenever work touches plans, subscriptions, entitlements, Supabase accounts, Stripe-to-account mapping, or any change that must stay consistent across both repos, even if the user just says "accounts", "plan", or "billing". Identical copy lives in both repos.
+description: Shared account and entitlement contract between the DeepCrated desktop app (deepcrated-v3) and website (deepcrate-web). Use whenever work touches plans, subscriptions, entitlements, Supabase accounts, Stripe-to-account mapping, or any change that must stay consistent across both repos, even if the user just says "accounts", "plan", or "billing". Identical copy lives in both repos.
 ---
- 
-# DeepCrate account contract (v2, 2026-10-05)
- 
-Identical copy in `cratecloud-v3` and `deepcrate-web`. If you change this file, say so explicitly so the other repo's copy is updated in the same sitting, and bump the version/date above.
  
 ## Decided
 - **Supabase** (auth + Postgres) is the account system, one project shared by desktop and website. Login: email/password and Google OAuth.
 - **Sign-in is optional.** The desktop app is fully usable signed out; an account is only needed for cloud sync and mobile. Never gate local features behind sign-in.
 - **No intermediary API.** Desktop talks to Supabase directly; RLS scopes reads to the user's own rows.
-- The **Stripe webhook** (Vercel serverless, in `deepcrate-web`) is the only server-side piece. It writes entitlements with the service role key and must not grow into a general API.
+- The **Stripe webhook** (Vercel serverless, in `deepcrated-web`) is the only server-side piece. It writes entitlements with the service role key and must not grow into a general API.
 - Checkout and login return to the desktop app through its existing **custom protocol handler**.
 - Desktop is free and ungated. Paid = cloud sync and mobile subscription tiers, **to be defined later**. Never invent plan names, prices, or limits.
 ## Entitlement record (PROPOSED, verify against the real migration)
