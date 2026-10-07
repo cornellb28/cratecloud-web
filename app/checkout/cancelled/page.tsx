@@ -13,7 +13,7 @@ export default function CancelledPage() {
           want your library on more than one machine.
         </p>
         <div className="mt-6 flex gap-2">
-          <ButtonLink href="/pricing">Back to pricing</ButtonLink>
+          <ButtonLink href="/cloud-mobile">Back to Cloud &amp; Mobile</ButtonLink>
           <ButtonLink href="/" variant="ghost">
             Home
           </ButtonLink>

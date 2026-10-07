@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { safeNext } from '@/lib/safe-next'
 
 // getUser() rather than getSession(): getSession reads the cookie and trusts
 // it, getUser revalidates against the auth server. On a page that decides
@@ -19,6 +20,6 @@ export async function getUser(): Promise<User | null> {
 
 export async function requireUser(next: string): Promise<User> {
   const user = await getUser()
-  if (!user) redirect(`/login?next=${encodeURIComponent(next)}`)
+  if (!user) redirect(`/login?next=${encodeURIComponent(safeNext(next))}`)
   return user
 }

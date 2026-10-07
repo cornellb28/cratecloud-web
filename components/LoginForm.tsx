@@ -13,12 +13,13 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { safeNext } from '@/lib/safe-next'
 import { Button, Notice } from '@/components/ui'
 
 type Mode = 'sign-in' | 'sign-up'
 
 export function LoginForm({
-  next,
+  next: nextProp,
   initialError,
   initialMode = 'sign-in'
 }: {
@@ -27,6 +28,9 @@ export function LoginForm({
   initialMode?: Mode
 }) {
   const router = useRouter()
+  // Re-validated here as well as on the server: this value feeds router.push
+  // and the OAuth/email redirect URLs. The server check is the one that counts.
+  const next = safeNext(nextProp)
   const supabase = createClient()
 
   const [mode, setMode] = useState<Mode>(initialMode)

@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Sign in' }
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ next?: string; error?: string; mode?: string }>
+  searchParams: Promise<{ next?: string | string[]; error?: string; mode?: string }>
 }) {
   const params = await searchParams
 
