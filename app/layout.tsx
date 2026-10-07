@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import Link from 'next/link'
 import './globals.css'
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <div className="flex min-h-dvh flex-col">
           <Analytics />
+          <SpeedInsights />
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
