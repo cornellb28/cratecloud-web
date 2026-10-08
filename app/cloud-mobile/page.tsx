@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
 import { Eyebrow } from '@/components/marketing'
-import { CONTACT_EMAIL } from '@/lib/site'
+import { ButtonLink } from '@/components/ui'
 
 export const metadata: Metadata = { title: 'Cloud & Mobile' }
-
-const PILLS =
-  'inline-flex items-center justify-center rounded-full px-8 py-3.5 text-[15px] font-semibold'
 
 const ITEMS = [
   {
@@ -45,22 +42,9 @@ export default function CloudMobilePage() {
       </div>
 
       <div className="mt-14 text-center">
-        {/* TODO(waitlist): a real waitlist needs a table — ask before creating one. */}
-        {CONTACT_EMAIL ? (
-          <a
-            href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Notify me about Cloud & Mobile')}`}
-            className={`${PILLS} bg-accent text-white transition hover:scale-[1.03] hover:bg-accent/90`}
-          >
-            Notify me
-          </a>
-        ) : (
-          <>
-            <span aria-disabled="true" className={`${PILLS} cursor-not-allowed bg-accent text-white opacity-50`}>
-              Notify me
-            </span>
-            <p className="mt-3 text-[12px] text-faint">Set NEXT_PUBLIC_CONTACT_EMAIL to enable this.</p>
-          </>
-        )}
+        <ButtonLink href="/waitlist" variant="pillLg">
+          Join the waitlist
+        </ButtonLink>
       </div>
     </div>
   )
