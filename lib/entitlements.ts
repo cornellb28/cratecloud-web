@@ -107,7 +107,7 @@ async function update(
 
 // Written by checkout.session.completed and customer.subscription.updated.
 // Both go through here so the two paths cannot drift apart in what they set.
-export function subscriptionPatch(sub: Stripe.Subscription): Record<string, unknown> {
+export function subscriptionPatch(sub: Stripe.Subscription): Record<string, unknown> | null {
   const priceId = firstPriceId(sub)
   const plan: Plan | null = planForPriceId(priceId)
   const status = mapStatus(sub.status)
@@ -122,9 +122,10 @@ export function subscriptionPatch(sub: Stripe.Subscription): Record<string, unkn
 
   // A price id we do not recognise means someone bought something this build
   // does not know about — a price created in the dashboard and never wired
-  // into env. Leave `plan` alone rather than guessing: the subscription
-  // columns above are still true and still worth writing.
-  if (plan) patch.plan = plan
+  // into env, or a retired plan. Log and ignore: writing `status` without a
+  // known `plan` could grant access to something we cannot identify.
+  if (!plan) return null
+  patch.plan = plan
 
   // Omitted rather than written when Stripe sends a status our CHECK
   // constraint does not accept. See mapStatus().
@@ -138,7 +139,14 @@ export async function applySubscription(
   userId: string,
   sub: Stripe.Subscription
 ): Promise<WriteResult> {
-  return update(admin, userId, subscriptionPatch(sub))
+  const patch = subscriptionPatch(sub)
+  if (!patch) {
+    console.error(
+      `[stripe] subscription ${sub.id} has unrecognised price ${firstPriceId(sub)} — ignored, nothing written`
+    )
+    return { ok: true }
+  }
+  return update(admin, userId, patch)
 }
 
 // customer.subscription.deleted — the subscription is over NOW. Stripe fires

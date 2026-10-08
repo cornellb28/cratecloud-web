@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: `%s · ${BRAND}`
   },
   description:
-    'Tag, crate and clean up your DJ library on the desktop for free. Add Cloud + Mobile to carry it between machines.'
+    'Tag, crate and clean up your DJ library on the desktop for free. Add cloud sync and mobile to carry it between machines.'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

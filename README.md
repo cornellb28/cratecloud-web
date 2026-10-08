@@ -58,12 +58,14 @@ Supabase's `/auth/v1/callback`, not at either of ours.
 
 ### Stripe
 
-Two products, each with one recurring price. Put the **price** ids
-(`price_…`, not `prod_…`) in `STRIPE_PRICE_ID_CLOUD_MOBILE` and
-`STRIPE_PRICE_ID_CLOUD_MOBILE_PLUS`.
+Three products (Sync $5, Library $19, Touring $65 per month), each with one
+monthly recurring price, in **test mode** until told otherwise. Put the **price**
+ids (`price_…`, not `prod_…`) in `STRIPE_PRICE_SYNC`, `STRIPE_PRICE_LIBRARY`
+and `STRIPE_PRICE_TOURING`. A price id the webhook does not recognise is logged
+and ignored; it never grants access.
 
 Configure the Customer Portal at Settings → Billing → Customer portal, and
-list both products under "Products" — otherwise upgrades are not offered and
+list all three products under "Products" — otherwise upgrades are not offered and
 the portal looks broken for reasons no code change will fix.
 
 ### The webhook, locally

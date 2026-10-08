@@ -16,16 +16,16 @@ export default async function PricingPage() {
   const [pricing, user] = await Promise.all([getTierPricing(), getUser()])
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <header className="mb-12 max-w-xl">
         <h1 className="text-3xl font-medium text-ink">Pricing</h1>
         <p className="mt-3 text-[14px] leading-relaxed text-muted">
-          The desktop app is free and always will be. Cloud + Mobile is for carrying the same
-          library between machines — and, when it lands, onto your phone.
+          The DeepCrated desktop app is free and always will be. Paid plans add cloud sync and
+          mobile, for carrying the same library between machines and onto your phone.
         </p>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <h2 className="text-[15px] font-medium text-ink">{FREE_TIER.name}</h2>
           <p className="mt-1 text-[12px] text-muted">{FREE_TIER.tagline}</p>

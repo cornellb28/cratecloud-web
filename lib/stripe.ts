@@ -36,12 +36,16 @@ export function getStripe(): Stripe {
 }
 
 // ─── tier key <-> price id ────────────────────────────────────────────────
-// The client sends a tier KEY ('cloud_mobile'), never a price id. If it could
+// The client sends a tier KEY ('library'), never a price id. If it could
 // send a price id it could send a cheaper one, and Stripe would honour it.
 
 const PRICE_ENV: Record<Exclude<Plan, 'free'>, string> = {
-  cloud_mobile: 'STRIPE_PRICE_ID_CLOUD_MOBILE',
-  cloud_mobile_plus: 'STRIPE_PRICE_ID_CLOUD_MOBILE_PLUS'
+  // One Stripe Product per plan, one monthly Price each.
+  // TODO(stripe): create these in TEST mode and set the env vars; no ids are
+  // hardcoded or invented here.
+  sync: 'STRIPE_PRICE_SYNC',
+  library: 'STRIPE_PRICE_LIBRARY',
+  touring: 'STRIPE_PRICE_TOURING'
 }
 
 export function priceIdForTier(tier: string): string | null {

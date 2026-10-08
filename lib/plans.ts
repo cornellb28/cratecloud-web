@@ -8,11 +8,12 @@
 // src/renderer/src/lib/plan.ts. Keep the two in step — a tier renamed here
 // has to be renamed there, in the DB check constraint, and in Stripe.
 
-// ⚠ PROVISIONAL NAMES (agreed 2026-09-23). The tier lineup is not final and
-// these WILL change. Nothing may branch on a specific paid value: the only
-// durable test is `plan !== 'free'`, which is what isPaid() below does and
-// what the desktop does too.
-export type Plan = 'free' | 'cloud_mobile' | 'cloud_mobile_plus'
+// Final plan ids (pricing model decided 2026-10-08). The desktop app is free
+// and ungated; paid plans are cloud sync + mobile only. Nothing may gate a
+// local feature on a plan. The durable test for "is paid" is `plan !== 'free'`
+// (isPaid() below, same as the desktop). Mirrored in the DB check constraint
+// on public.entitlements.plan and in the desktop's plan.ts — keep all in step.
+export type Plan = 'free' | 'sync' | 'library' | 'touring'
 
 // Every status Stripe can put on a subscription, plus 'revoked' for a manual
 // or refund-driven revocation that has no Stripe equivalent. Accepting all of
@@ -94,34 +95,67 @@ export const FREE_TIER: Tier = {
   fallbackPrice: '$0'
 }
 
-// TODO(tiers): what Plus adds over Cloud + Mobile is not decided. Both list
-// the same things on purpose — advertising a difference that does not exist
-// yet is worse than listing none.
+// Margin guardrail: every tier must keep gross margin above 75% at worst case
+// (subscriber fills the whole cap), counting storage, Stripe fees (2.9% + $0.30)
+// and ~$0.50/user for database and support. Worst case per subscriber:
+// Sync ~$0.95, Library ~$4.60, Touring ~$15.69. Re-check that math before
+// changing any price, cap or inclusion below.
+//
+// Assumes WEB checkout through Stripe. App Store in-app purchase fees would
+// break it, so the mobile app must not sell subscriptions.
+//
+// TODO(addon): 250 GB extra storage block, proposed $15/mo. Not built.
+// TODO(annual): annual billing not built; if added, cap the discount at 10%.
 export const PAID_TIERS: Tier[] = [
   {
-    key: 'cloud_mobile',
-    name: 'Cloud + Mobile',
-    tagline: 'Your library follows you between machines.',
+    key: 'sync',
+    name: 'Sync',
+    tagline: 'Your library metadata and tags, on every machine and your phone.',
     features: [
       ...DESKTOP_FEATURES,
-      'Tags, crates and play history synced across your machines',
-      'Browse and tag from the mobile app'
+      'Cloud sync of library metadata and tags',
+      'Mobile app: browse and tag',
+      'No audio upload'
     ],
-    fallbackPrice: '$8 / mo',
+    fallbackPrice: '$5 / mo'
+  },
+  {
+    key: 'library',
+    name: 'Library',
+    tagline: 'Your whole library in the cloud, ready to play on mobile.',
+    features: [
+      'Everything in Sync',
+      '250 GB cloud library (originals + mobile proxies)',
+      'Mobile listening'
+    ],
+    fallbackPrice: '$19 / mo',
     highlight: true
   },
   {
-    key: 'cloud_mobile_plus',
-    name: 'Cloud + Mobile Plus',
-    tagline: 'Everything in Cloud + Mobile.',
+    key: 'touring',
+    name: 'Touring',
+    tagline: 'A bigger cloud library for the DJ who carries everything.',
     features: [
-      ...DESKTOP_FEATURES,
-      'Tags, crates and play history synced across your machines',
-      'Browse and tag from the mobile app'
+      'Everything in Sync',
+      '1 TB cloud library (originals + mobile proxies)',
+      'Mobile listening'
     ],
-    fallbackPrice: '$15 / mo'
+    fallbackPrice: '$65 / mo'
   }
 ]
+
+// Cloud library caps in GB, enforced SERVER-SIDE from the plan id. Never trust
+// a client-supplied cap. Unknown or free plans get 0.
+export const STORAGE_CAP_GB: Record<Plan, number> = {
+  free: 0,
+  sync: 0,
+  library: 250,
+  touring: 1000
+}
+
+export function storageCapGb(plan: string): number {
+  return STORAGE_CAP_GB[plan as Plan] ?? 0
+}
 
 export const ALL_TIERS: Tier[] = [FREE_TIER, ...PAID_TIERS]
 
