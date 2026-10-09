@@ -10,6 +10,7 @@
 // nowhere to put a "resend" — the desktop app learned the same lesson, see
 // SignUpResult in src/main/auth.ts.
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -161,6 +162,14 @@ export function LoginForm({
           {busy ? 'Working…' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
         </Button>
       </form>
+
+      <p className="text-[11px] leading-relaxed text-faint">
+        See our{' '}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-muted">
+          Privacy Policy
+        </Link>
+        . {/* TODO(legal): add a Terms of Service link once that page exists. */}
+      </p>
 
       <button
         type="button"

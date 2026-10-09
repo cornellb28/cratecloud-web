@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { WaitlistForm } from '@/components/WaitlistForm'
 import { Eyebrow } from '@/components/marketing'
 import { BRAND } from '@/lib/site'
@@ -27,8 +28,11 @@ export default function WaitlistPage() {
       </div>
 
       <p className="mt-8 text-center text-[13px] text-muted">
-        Unsubscribe any time.{' '}
-        {/* TODO(legal): link Privacy and Terms here once those pages exist. */}
+        Unsubscribe any time. See our{' '}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-ink">
+          Privacy Policy
+        </Link>
+        .{/* TODO(legal): add a Terms of Service link once that page exists. */}
       </p>
     </div>
   )
