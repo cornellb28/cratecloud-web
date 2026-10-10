@@ -12,11 +12,13 @@ import { Button } from '@/components/ui'
 
 export function CheckoutButton({
   tier,
+  interval = 'month',
   label,
   signedIn,
   variant = 'primary'
 }: {
   tier: string
+  interval?: 'month' | 'year'
   label: string
   signedIn: boolean
   variant?: 'primary' | 'outline'
@@ -27,7 +29,7 @@ export function CheckoutButton({
 
   async function start() {
     if (!signedIn) {
-      router.push(`/login?next=${encodeURIComponent(`/pricing?tier=${tier}`)}`)
+      router.push(`/login?next=${encodeURIComponent(`/pricing?tier=${tier}&interval=${interval}`)}`)
       return
     }
 
@@ -37,7 +39,7 @@ export function CheckoutButton({
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier })
+        body: JSON.stringify({ tier, interval })
       })
       const body = await res.json()
 

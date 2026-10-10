@@ -5,7 +5,7 @@ import { PAID_TIERS, isPaid, planLabel, storageCapGb } from '../lib/plans.ts'
 
 test('storage caps come from the plan id', () => {
   assert.equal(storageCapGb('free'), 0)
-  assert.equal(storageCapGb('sync'), 0)
+  assert.equal(storageCapGb('sync'), 10)
   assert.equal(storageCapGb('library'), 250)
   assert.equal(storageCapGb('touring'), 1000)
 })

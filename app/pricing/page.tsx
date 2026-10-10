@@ -5,10 +5,19 @@ import { CheckoutButton } from '@/components/CheckoutButton'
 import { FREE_TIER, PAID_TIERS } from '@/lib/plans'
 import { getTierPricing } from '@/lib/stripe'
 import { getUser } from '@/lib/auth'
+import { parseInterval, type Interval } from '@/lib/price-map'
 
 export const metadata: Metadata = { title: 'Pricing' }
 
-export default async function PricingPage() {
+export default async function PricingPage({
+  searchParams
+}: {
+  searchParams: Promise<{ interval?: string | string[] }>
+}) {
+  // Server-rendered toggle: ?interval=year. Anything unrecognised is monthly.
+  const raw = (await searchParams).interval
+  const interval: Interval = parseInterval(typeof raw === 'string' ? raw : undefined) ?? 'month'
+
   // Amounts come from Stripe, never from a constant in this repo — a price
   // typed into a page is a price that will one day disagree with the one the
   // customer is charged. Empty until Stripe is configured, and the tiers'
@@ -24,6 +33,21 @@ export default async function PricingPage() {
           mobile, for carrying the same library between machines and onto your phone.
         </p>
       </header>
+
+      <div role="group" aria-label="Billing interval" className="mb-8 inline-flex rounded-full bg-surface p-1 text-[13px]">
+        {(['month', 'year'] as const).map((i) => (
+          <Link
+            key={i}
+            href={i === 'month' ? '/pricing' : '/pricing?interval=year'}
+            aria-current={interval === i ? 'true' : undefined}
+            className={`rounded-full px-4 py-1.5 font-medium transition-colors ${
+              interval === i ? 'bg-accent text-white' : 'text-muted hover:text-ink'
+            }`}
+          >
+            {i === 'month' ? 'Monthly' : 'Annual · 2 months free'}
+          </Link>
+        ))}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
@@ -50,14 +74,16 @@ export default async function PricingPage() {
             </div>
             <p className="mt-1 text-[12px] text-muted">{tier.tagline}</p>
             <p className="mt-5 text-2xl font-medium text-ink">
-              {pricing[tier.key] ?? tier.fallbackPrice}
+              {pricing[tier.key]?.[interval] ??
+                (interval === 'year' ? tier.fallbackAnnual : tier.fallbackPrice)}
             </p>
             <p className="mb-5 text-[11px] text-faint">
-              {pricing[tier.key] ? 'billed through Stripe' : 'pricing not final'}
+              {pricing[tier.key]?.[interval] ? 'billed through Stripe' : 'pricing not final'}
             </p>
             <div className="mb-5">
               <CheckoutButton
                 tier={tier.key}
+                interval={interval}
                 label={`Get ${tier.name}`}
                 signedIn={Boolean(user)}
                 variant={tier.highlight ? 'primary' : 'outline'}

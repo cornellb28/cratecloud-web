@@ -58,14 +58,19 @@ Supabase's `/auth/v1/callback`, not at either of ours.
 
 ### Stripe
 
-Three products (Sync $5, Library $19, Touring $65 per month), each with one
-monthly recurring price, in **test mode** until told otherwise. Put the **price**
-ids (`price_…`, not `prod_…`) in `STRIPE_PRICE_SYNC`, `STRIPE_PRICE_LIBRARY`
-and `STRIPE_PRICE_TOURING`. A price id the webhook does not recognise is logged
-and ignored; it never grants access.
+Three products (Sync $10, Library $19, Touring $55 per month), each with a
+monthly and an annual recurring price (annual = 10x monthly: $100 / $190 / $550),
+in **test mode** until told otherwise. Put the six **price** ids (`price_…`, not
+`prod_…`) in `STRIPE_PRICE_SYNC`, `STRIPE_PRICE_SYNC_ANNUAL`,
+`STRIPE_PRICE_LIBRARY`, `STRIPE_PRICE_LIBRARY_ANNUAL`, `STRIPE_PRICE_TOURING` and
+`STRIPE_PRICE_TOURING_ANNUAL`. The mapping lives in `lib/price-map.ts`. A price
+id the webhook does not recognise is logged and ignored; it never grants access.
+
+TODO(live-mode): create the six LIVE-mode prices and swap them into Production
+before launch.
 
 Configure the Customer Portal at Settings → Billing → Customer portal, and
-list all three products under "Products" — otherwise upgrades are not offered and
+list all three products, with both their monthly and annual prices, under "Products" — otherwise upgrades are not offered and
 the portal looks broken for reasons no code change will fix.
 
 ### The webhook, locally

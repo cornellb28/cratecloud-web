@@ -77,6 +77,8 @@ export interface Tier {
   // during Phase 1. Once STRIPE_SECRET_KEY is set the real amount is read
   // from Stripe and this is ignored — there is no second price to drift.
   fallbackPrice: string
+  // Annual price shown the same way (annual = 10x monthly). Free has none.
+  fallbackAnnual?: string
   highlight?: boolean
 }
 
@@ -95,52 +97,64 @@ export const FREE_TIER: Tier = {
   fallbackPrice: '$0'
 }
 
-// Margin guardrail: every tier must keep gross margin above 75% at worst case
-// (subscriber fills the whole cap), counting storage, Stripe fees (2.9% + $0.30)
-// and ~$0.50/user for database and support. Worst case per subscriber:
-// Sync ~$0.95, Library ~$4.60, Touring ~$15.69. Re-check that math before
-// changing any price, cap or inclusion below.
+// ─── List prices ──────────────────────────────────────────────────────────
+// Stripe is the source of truth for what is charged (getTierPricing reads the
+// live amount); these are the page fallbacks and the inputs to the margin guard
+// test. Keep them equal to the Stripe prices.
+//
+// ANNUAL = 10x MONTHLY (two months free, a 16.7% discount). The earlier "cap
+// annual discounts at 10%" rule is withdrawn.
+export const LIST_PRICE_USD: Record<Exclude<Plan, 'free'>, { month: number; year: number }> = {
+  sync: { month: 10, year: 100 },
+  library: { month: 19, year: 190 },
+  touring: { month: 55, year: 550 }
+}
+
+// ─── Margin guardrail (>= 75% at full cap, every plan and interval) ───────
+// Worst case = the subscriber fills the whole cap. Cost per month is:
+//   storage:  cap x 1.10 (mobile proxies at 10% of library size) x $6.95/TB
+//   Stripe:   2.9% + $0.30 per charge (an annual charge spread over 12 months)
+//   per user: $0.50 for database and support
+// Indicative figures at the time of writing (B2-based, see lib/margins.ts and
+// tests/margins.test.mts, which fail if any row drops under 75%):
+//   Sync     10 GB   monthly 88.3%   annual 89.9%
+//   Library  250 GB  monthly 82.8%   annual 81.7%
+//   Touring  1 TB    monthly 81.7%   annual 79.3%   (about $9.50/mo cost on annual)
+// Re-check before changing any price, cap or inclusion.
 //
 // Assumes WEB checkout through Stripe. App Store in-app purchase fees would
 // break it, so the mobile app must not sell subscriptions.
 //
 // TODO(addon): 250 GB extra storage block, proposed $15/mo. Not built.
-// TODO(annual): annual billing not built; if added, cap the discount at 10%.
 export const PAID_TIERS: Tier[] = [
   {
     key: 'sync',
     name: 'Sync',
-    tagline: 'Your library metadata and tags, on every machine and your phone.',
+    tagline: 'Your library and tags on every machine and your phone.',
     features: [
       ...DESKTOP_FEATURES,
       'Cloud sync of library metadata and tags',
-      'Mobile app: browse and tag',
-      'No audio upload'
+      'Mobile app access + 10 GB cloud audio storage'
     ],
-    fallbackPrice: '$5 / mo'
+    fallbackPrice: '$10 / mo',
+    fallbackAnnual: '$100 / yr'
   },
   {
     key: 'library',
     name: 'Library',
     tagline: 'Your whole library in the cloud, ready to play on mobile.',
-    features: [
-      'Everything in Sync',
-      '250 GB cloud library (originals + mobile proxies)',
-      'Mobile listening'
-    ],
+    features: ['Everything in Sync', 'Mobile app access + 250 GB cloud audio storage'],
     fallbackPrice: '$19 / mo',
+    fallbackAnnual: '$190 / yr',
     highlight: true
   },
   {
     key: 'touring',
     name: 'Touring',
     tagline: 'A bigger cloud library for the DJ who carries everything.',
-    features: [
-      'Everything in Sync',
-      '1 TB cloud library (originals + mobile proxies)',
-      'Mobile listening'
-    ],
-    fallbackPrice: '$65 / mo'
+    features: ['Everything in Sync', 'Mobile app access + 1 TB cloud audio storage'],
+    fallbackPrice: '$55 / mo',
+    fallbackAnnual: '$550 / yr'
   }
 ]
 
@@ -148,7 +162,7 @@ export const PAID_TIERS: Tier[] = [
 // a client-supplied cap. Unknown or free plans get 0.
 export const STORAGE_CAP_GB: Record<Plan, number> = {
   free: 0,
-  sync: 0,
+  sync: 10,
   library: 250,
   touring: 1000
 }

@@ -10,6 +10,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe, isStripeConfigured, priceIdForTier } from '@/lib/stripe'
 import { linkCustomer, readEntitlement } from '@/lib/entitlements'
 import { isEntitled } from '@/lib/plans'
+import { parseInterval } from '@/lib/price-map'
 import { siteUrl } from '@/lib/site'
 
 export const runtime = 'nodejs'
@@ -29,13 +30,23 @@ export async function POST(request: Request) {
   }
 
   let tier: unknown
+  let rawInterval: unknown
   try {
-    tier = (await request.json())?.tier
+    const body = await request.json()
+    tier = body?.tier
+    rawInterval = body?.interval
   } catch {
     return NextResponse.json({ error: 'Bad request body.' }, { status: 400 })
   }
 
-  const priceId = typeof tier === 'string' ? priceIdForTier(tier) : null
+  // The interval is validated here, server-side. Missing means monthly; the
+  // price id is then chosen from env by (tier, interval) — never by the client.
+  const interval = parseInterval(rawInterval)
+  if (!interval) {
+    return NextResponse.json({ error: 'Unknown billing interval.' }, { status: 400 })
+  }
+
+  const priceId = typeof tier === 'string' ? priceIdForTier(tier, interval) : null
   if (!priceId) {
     return NextResponse.json({ error: 'Unknown plan.' }, { status: 400 })
   }

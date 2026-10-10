@@ -5,6 +5,13 @@
 import 'server-only'
 import Stripe from 'stripe'
 import type { Plan, SubscriptionStatus } from '@/lib/plans'
+import {
+  INTERVALS,
+  PAID_PLANS,
+  planAndIntervalForPriceId,
+  priceIdFor,
+  type Interval
+} from '@/lib/price-map'
 
 // ⚠ PINNED DELIBERATELY, and verified against stripe@22.6.2's own default.
 //
@@ -36,33 +43,19 @@ export function getStripe(): Stripe {
 }
 
 // ─── tier key <-> price id ────────────────────────────────────────────────
-// The client sends a tier KEY ('library'), never a price id. If it could
-// send a price id it could send a cheaper one, and Stripe would honour it.
+// The client sends a tier KEY ('library') and an interval, never a price id.
+// If it could send a price id it could send a cheaper one, and Stripe would
+// honour it. The mapping itself lives in lib/price-map.ts (unit-tested).
 
-const PRICE_ENV: Record<Exclude<Plan, 'free'>, string> = {
-  // One Stripe Product per plan, one monthly Price each.
-  // TODO(stripe): create these in TEST mode and set the env vars; no ids are
-  // hardcoded or invented here.
-  sync: 'STRIPE_PRICE_SYNC',
-  library: 'STRIPE_PRICE_LIBRARY',
-  touring: 'STRIPE_PRICE_TOURING'
+export function priceIdForTier(tier: string, interval: Interval = 'month'): string | null {
+  return priceIdFor(tier, interval)
 }
 
-export function priceIdForTier(tier: string): string | null {
-  const envName = PRICE_ENV[tier as Exclude<Plan, 'free'>]
-  if (!envName) return null
-  return process.env[envName] ?? null
-}
-
-// Read at call time rather than module load: on Vercel the env is present at
-// runtime, and a map frozen at import would be empty in some build contexts.
 export function planForPriceId(priceId: string | null | undefined): Plan | null {
-  if (!priceId) return null
-  for (const [tier, envName] of Object.entries(PRICE_ENV)) {
-    if (process.env[envName] === priceId) return tier as Plan
-  }
-  return null
+  return planAndIntervalForPriceId(priceId)?.plan ?? null
 }
+
+export { planAndIntervalForPriceId }
 
 // ─── Reading a subscription into entitlement columns ──────────────────────
 
@@ -117,31 +110,35 @@ export function customerIdOf(
 // amount the checkout does not charge. Returns an empty map when Stripe is
 // not configured yet, and the page falls back to Tier.fallbackPrice — which
 // is what lets /pricing render during Phase 1.
-export async function getTierPricing(): Promise<Record<string, string>> {
+export type TierPricing = Record<string, Partial<Record<Interval, string>>>
+
+export async function getTierPricing(): Promise<TierPricing> {
   if (!isStripeConfigured()) return {}
 
   const stripe = getStripe()
-  const out: Record<string, string> = {}
+  const out: TierPricing = {}
 
   await Promise.all(
-    Object.keys(PRICE_ENV).map(async (tier) => {
-      const priceId = priceIdForTier(tier)
-      if (!priceId) return
-      try {
-        const price = await stripe.prices.retrieve(priceId)
-        if (price.unit_amount == null) return
-        const amount = (price.unit_amount / 100).toLocaleString('en-US', {
-          style: 'currency',
-          currency: price.currency.toUpperCase(),
-          minimumFractionDigits: price.unit_amount % 100 === 0 ? 0 : 2
-        })
-        const interval = price.recurring?.interval
-        out[tier] = interval ? `${amount} / ${interval === 'month' ? 'mo' : interval}` : amount
-      } catch {
-        // A price id that does not resolve is a config problem, not a reason
-        // to 500 the pricing page. The fallback copy renders instead.
-      }
-    })
+    PAID_PLANS.flatMap((tier) =>
+      INTERVALS.map(async (interval) => {
+        const priceId = priceIdFor(tier, interval)
+        if (!priceId) return
+        try {
+          const price = await stripe.prices.retrieve(priceId)
+          if (price.unit_amount == null) return
+          const amount = (price.unit_amount / 100).toLocaleString('en-US', {
+            style: 'currency',
+            currency: price.currency.toUpperCase(),
+            minimumFractionDigits: price.unit_amount % 100 === 0 ? 0 : 2
+          })
+          const unit = interval === 'month' ? 'mo' : 'yr'
+          out[tier] = { ...out[tier], [interval]: `${amount} / ${unit}` }
+        } catch {
+          // A price id that does not resolve is a config problem, not a reason
+          // to 500 the pricing page. The fallback copy renders instead.
+        }
+      })
+    )
   )
 
   return out

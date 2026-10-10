@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, ButtonLink, Notice } from '@/components/ui'
 import { requireUser } from '@/lib/auth'
-import { getStripe, isStripeConfigured, planForPriceId } from '@/lib/stripe'
+import { getStripe, isStripeConfigured, planAndIntervalForPriceId } from '@/lib/stripe'
 import { planName } from '@/lib/plans'
 import { BRAND, DESKTOP_CHECKOUT_CALLBACK } from '@/lib/site'
 
@@ -40,8 +40,10 @@ export default async function SuccessPage({
         confirmed =
           session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
         const priceId = session.line_items?.data?.[0]?.price?.id ?? null
-        const plan = planForPriceId(priceId)
-        if (plan) tierLabel = planName(plan)
+        const match = planAndIntervalForPriceId(priceId)
+        if (match) {
+          tierLabel = `${planName(match.plan)} (${match.interval === 'year' ? 'annual' : 'monthly'})`
+        }
       }
     } catch {
       // A session that will not load is not worth a failed page. The DJ has
