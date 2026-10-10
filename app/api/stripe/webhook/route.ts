@@ -24,6 +24,8 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { applyFree, applySubscription, resolveUserId } from '@/lib/entitlements'
+import { READ_ONLY_DAYS } from '@/lib/storage/config'
+import { startReadOnlyWindow } from '@/lib/storage/service'
 
 // Node, not Edge: the raw-body read and Stripe's crypto both want it, and
 // this route is nowhere near hot enough to care.
@@ -174,6 +176,15 @@ async function onSubscriptionDeleted(sub: Stripe.Subscription): Promise<void> {
 
   const result = await applyFree(admin, userId)
   if (!result.ok) throw new TransientError(result.error ?? 'write failed')
+
+  // Cloud audio stays downloadable (read-only) for 60 days after the paid period
+  // ends. Uploads stay blocked. Failing here asks Stripe to redeliver; the
+  // entitlement write above is idempotent.
+  try {
+    await startReadOnlyWindow(admin, userId, new Date(Date.now() + READ_ONLY_DAYS * 86_400_000))
+  } catch (err) {
+    throw new TransientError((err as Error).message)
+  }
 
   console.log(`[stripe] ${userId} back to free (subscription ${sub.id} ended)`)
 }
